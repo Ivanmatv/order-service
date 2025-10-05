@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
@@ -9,6 +10,8 @@ from .serializers import OrderItemSerializer, OrderDetailSerializer
 
 
 class AddOrderItemView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request, order_id):
         serializer = OrderItemSerializer(data=request.data)
         if not serializer.is_valid():
@@ -21,7 +24,7 @@ class AddOrderItemView(APIView):
             with transaction.atomic():
                 order = get_object_or_404(Order, id=order_id)
                 product = get_object_or_404(Product, id=product_id)
-
+                
                 if product.quantity < quantity:
                     return Response({
                         'error': 'Insufficient stock',
@@ -29,22 +32,19 @@ class AddOrderItemView(APIView):
                     }, status=status.HTTP_400_BAD_REQUEST)
                 
                 existing_item = OrderItem.objects.filter(
-                    order=order, 
+                    order=order,
                     product=product
                 ).first()
                 
                 if existing_item:
                     existing_item.quantity += quantity
-                    existing_item.full_clean()
                     existing_item.save()
                 else:
-                    new_item = OrderItem(
+                    OrderItem.objects.create(
                         order=order,
                         product=product,
                         quantity=quantity
                     )
-                    new_item.full_clean()
-                    new_item.save()
                 
                 product.quantity -= quantity
                 product.save()
@@ -59,28 +59,11 @@ class AddOrderItemView(APIView):
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class OrderDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def get(self, request, order_id):
         order = get_object_or_404(Order, id=order_id)
         serializer = OrderDetailSerializer(order)
         return Response(serializer.data)
-
-class OrderItemsView(APIView):
-    def get(self, request, order_id):
-        order = get_object_or_404(Order, id=order_id)
-        items = order.items.select_related('product').all()
-        
-        items_data = []
-        for item in items:
-            items_data.append({
-                'product_id': item.product.id,
-                'product_name': item.product.name,
-                'quantity': item.quantity,
-                'price': str(item.product.price)
-            })
-        
-        return Response({
-            'order_id': order.id,
-            'customer': order.customer.name,
-            'items': items_data
-        })
