@@ -34,8 +34,8 @@
 
 ## Технологии
 
-- **Python 3.8+**
-- **Django 4.x**
+- **Python 3.11**
+- **Django 5.x**
 - **Django REST Framework**
 - **SQLite** (для разработки) / **PostgreSQL** (для продакшена)
 - **Simple JWT** для аутентификации
