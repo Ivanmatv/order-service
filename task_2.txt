@@ -1,0 +1,57 @@
+Задание 2
+
+2.1. Получение информации о сумме товаров заказанных под каждого клиента (Наименование клиента, сумма)
+
+SELECT 
+    c.Name AS Клиент,
+    SUM(oi.Quantity * oi.Price) AS Сумма
+FROM Customers c
+INNER JOIN Orders o ON c.Id = o.CustomerId
+INNER JOIN OrderItems oi ON o.Id = oi.OrderId
+GROUP BY c.Id, c.Name;
+
+2.2. Найти количество дочерних элементов первого уровня вложенности для категорий номенклатуры.
+
+SELECT 
+    parent.Id AS Категория,
+    COUNT(child.Id) AS Количество_дочерних
+FROM Categories parent
+LEFT JOIN Categories child ON parent.Id = child.ParentId
+GROUP BY parent.Id;
+
+2.3.1. Написать текст запроса для отчета (view) «Топ-5 самых покупаемых товаров за последний месяц» (по количеству штук в заказах). В отчете должны быть: Наименование товара, Категория 1-го уровня, Общее количество проданных штук.
+
+CREATE VIEW TopProductsLastMonth AS
+SELECT 
+    p.Name AS Наименование_товара,
+    cat.Name AS Категория_1_уровня,
+    SUM(oi.Quantity) AS Продано_штук
+FROM OrderItems oi
+INNER JOIN Orders o ON oi.OrderId = o.Id
+INNER JOIN Products p ON oi.ProductId = p.Id
+INNER JOIN Categories cat ON p.CategoryId = cat.Id
+WHERE o.OrderDate >= DATEADD(MONTH, -1, GETDATE())
+GROUP BY p.Id, p.Name, cat.Name
+ORDER BY Продано_штук DESC
+LIMIT 5;
+
+2.3.2. Проанализировать написанный в п. 2.3.1 запрос и структуру БД. Предложить варианты оптимизации этого запроса и общей схемы данных для повышения производительности системы в условиях роста данных (тысячи заказов в день).
+
+1. Индексация:
+CREATE INDEX IX_Orders_OrderDate ON Orders(OrderDate);
+CREATE INDEX IX_OrderItems_ProductId ON OrderItems(ProductId);
+CREATE INDEX IX_OrderItems_OrderId ON OrderItems(OrderId);
+CREATE INDEX IX_Products_CategoryId ON Products(CategoryId);
+
+2. Оптимизация условия по дате:
+•	Заменить DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH) на фиксированную дату, вычисляемую заранее, чтобы использовать индекс.
+•	Пример: WHERE o.OrderDate >= '2025-09-07'.
+
+3. Параллелизация:
+•	Если база данных поддерживает параллельное выполнение запросов (например, PostgreSQL), включить эту опцию для ускорения обработки больших данных.
+
+4. Денормализация:
+•	Добавить в таблицу Products поле TopLevelCategoryName, чтобы избежать JOIN с таблицей Categories. Это увеличит размер таблицы, но ускорит запросы.
+
+5. Кэширование:
+•	Использовать Redis или Memcached для кэширования результатов отчета. Обновлять кэш раз в день или при добавлении новых заказов.
