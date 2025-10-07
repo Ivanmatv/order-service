@@ -52,9 +52,9 @@ class OrderStatusSerializer(serializers.Serializer):
 
 
 class ProductStockSerializer(serializers.ModelSerializer):
-    in_stock = serializers.BooleanField(source='in_stock')
-    low_stock = serializers.BooleanField(source='low_stock')
-    category_name = serializers.CharField(source='category.name')
+    in_stock = serializers.BooleanField(read_only=True)
+    low_stock = serializers.BooleanField(read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
 
     class Meta:
         model = Product

@@ -127,7 +127,7 @@ class OrderDetailView(APIView):
             logger.error(f"Error retrieving order {order_id}: {str(e)}")
             return Response({
                 'error': 'Error retrieving order'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            }, status=status.HTTP_404_NOT_FOUND)
 
 
 class OrderListView(APIView):
@@ -210,7 +210,7 @@ class ProductStockView(APIView):
 
             low_stock_only = request.query_params.get('low_stock')
             if low_stock_only and low_stock_only.lower() == 'true':
-                products = products.filter(quantity__lte=10)
+                products = products.filter(quantity__lte=10, quantity__gt=0)
 
             out_of_stock = request.query_params.get('out_of_stock')
             if out_of_stock and out_of_stock.lower() == 'true':

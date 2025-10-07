@@ -200,7 +200,7 @@ class OrderItem(models.Model):
 
         if self.product.quantity < quantity_change:
             raise ValidationError(
-                _("Insufficient stock. Available: %(available)s, requested: %(requested)s") % {
+                gettext_lazy("Insufficient stock. Available: %(available)s, requested: %(requested)s") % {
                     'available': self.product.quantity,
                     'requested': quantity_change
                 }
